@@ -40,9 +40,9 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
         run: |
-          echo "$SSH_PRIVATE_KEY" > medusas.pem
-          chmod 600 medusas.pem
-          ssh -o StrictHostKeyChecking=no -i medusas.pem ec2-user@$EC2_HOST << 'EOF'
+          echo "$SSH_PRIVATE_KEY" > medusas_converted.pem
+          chmod 600 medusas_converted.pem
+          ssh -o StrictHostKeyChecking=no -i medusas_converted.pem ec2-user@$EC2_HOST << 'EOF'
             # Pull the latest image from Docker Hub
             docker pull sindhumathapati7/my-medusa-app:latest
             
