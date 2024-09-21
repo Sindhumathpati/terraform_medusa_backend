@@ -1,0 +1,57 @@
+name: Deploy Medusa Application
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.17.0'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Docker image
+        run: docker build -t sindhumathapati7/my-medusa-app:latest .
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push Docker image
+        run: docker push sindhumathapati7/my-medusa-app:latest
+
+      - name: Deploy to EC2
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > medusa.pem
+          chmod 600 medusa.pem
+          ssh -o StrictHostKeyChecking=no -i medusas.pem ubuntu@$EC2_HOST << 'EOF'
+    
+            # Pull the latest image from Docker Hub
+            docker pull sindhumathapati7/my-medusa-app:latest
+            
+            # Stop and remove the existing container if it exists
+            docker stop my-medusa-app || true
+            docker rm my-medusa-app || true
+            
+            # Run the new container with the latest image
+            docker run -d --name my-medusa-app -p 80:7001 -e DATABASE_URL=$DATABASE_URL sindhumathapati7/my-medusa-app:latest
+
+          EOF
