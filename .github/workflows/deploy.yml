@@ -49,20 +49,25 @@ jobs:
           TF_VAR_aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
           TF_VAR_aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          region: us-west-2  # e.g., us-east-1
+
       - name: Deploy Medusa Application
         run: |
           echo "$SSH_PRIVATE_KEY" > medusa.pem
           chmod 600 medusa.pem
           ssh -o StrictHostKeyChecking=no -i medusa.pem ubuntu@$EC2_HOST << 'EOF'
             # Pull the latest image from ECR
-            docker pull ${{ steps.ecr-login.outputs.registry }}/your-repository-name:latest
+            docker pull ${{ steps.ecr-login.outputs.registry }}/medusa-app:latest
             
             # Stop and remove the existing container if it exists
             docker stop my-medusa-app || true
             docker rm my-medusa-app || true
             
             # Run the new container with the latest image
-            docker run -d --name my-medusa-app -p 80:7001 -e DATABASE_URL=$DATABASE_URL ${{ steps.ecr-login.outputs.registry }}/your-repository-name:latest
+            docker run -d --name my-medusa-app -p 80:7001 -e DATABASE_URL=$DATABASE_URL ${{ steps.ecr-login.outputs.registry }}/medusa-app:latest
           EOF
         env:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
