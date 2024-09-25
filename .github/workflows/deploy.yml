@@ -21,8 +21,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-         aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}  # ARN of the role to assume
+          aws-region: ${{ secrets.AWS_REGION }}         # Specify the AWS region
 
       - name: Login to Amazon ECR
         id: ecr-login
@@ -30,11 +30,11 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t image-name:latest .
+          docker build -t medusa-app:latest .  # Use a descriptive name
 
       - name: Tag Docker image
         run: |
-          docker tag image-name:latest ${{ steps.ecr-login.outputs.registry }}/medusa-app:latest
+          docker tag medusa-app:latest ${{ steps.ecr-login.outputs.registry }}/medusa-app:latest
 
       - name: Push Docker image to ECR
         run: |
@@ -51,9 +51,10 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
-        env:
-          TF_VAR_aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          TF_VAR_aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        # You might not need these env variables if you're using the assumed role
+        # env:
+        #   TF_VAR_aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        #   TF_VAR_aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Deploy Medusa Application
         run: |
@@ -71,5 +72,5 @@ jobs:
             docker run -d --name my-medusa-app -p 80:7001 -e DATABASE_URL=$DATABASE_URL ${{ steps.ecr-login.outputs.registry }}/medusa-app:latest
           EOF
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-          EC2_HOST: ${{ secrets.EC2_HOST }}
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}  # Your EC2 SSH key
+          EC2_HOST: ${{ secrets.EC2_HOST }}                    # Your EC2 host
