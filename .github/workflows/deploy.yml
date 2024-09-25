@@ -18,6 +18,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/my-github-actions-role
+          aws-region: us-east-2
+
       - name: Login to Amazon ECR
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v1
@@ -48,16 +54,6 @@ jobs:
         env:
           TF_VAR_aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
           TF_VAR_aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::123456789012:role/my-github-actions-role
-          aws-region: us-east-2
-
-      - name: Login to Amazon ECR Private
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Deploy Medusa Application
         run: |
