@@ -22,7 +22,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::123456789012:role/my-github-actions-role
-          aws-region: us-east-2
+          aws-region: us-east-1
 
       - name: Login to Amazon ECR
         id: ecr-login
@@ -57,9 +57,9 @@ jobs:
 
       - name: Deploy Medusa Application
         run: |
-          echo "$SSH_PRIVATE_KEY" > medusa.pem
-          chmod 600 medusa.pem
-          ssh -o StrictHostKeyChecking=no -i medusa.pem ubuntu@$EC2_HOST << 'EOF'
+          echo "$SSH_PRIVATE_KEY" > awsmedusa.pem
+          chmod 600 awsmedusa.pem
+          ssh -o StrictHostKeyChecking=no -i awsmedusa.pem ubuntu@$EC2_HOST << 'EOF'
             # Pull the latest image from ECR
             docker pull ${{ steps.ecr-login.outputs.registry }}/medusa-app:latest
             
