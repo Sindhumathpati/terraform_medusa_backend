@@ -5,6 +5,10 @@ on:
     branches:
       - master
 
+permissions:
+  id-token: write  # Add this permission
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
