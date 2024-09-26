@@ -30,7 +30,7 @@ resource "aws_security_group" "instance_sg" {
 }
 
 resource "aws_instance" "medusa" {
-  ami           = "ami-05134c8ef96964280" # Update with a suitable AMI
+  ami           = "ami-0e86e20dae9224db8" # Update with a suitable AMI
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.main.id
   security_groups = [aws_security_group.instance_sg.id]
