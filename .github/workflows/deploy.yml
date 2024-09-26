@@ -52,8 +52,7 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-        working-directory: ./medusa-terraform1  # Adjust to your Terraform configuration directory
-
+        
       - name: Terraform Apply
         run: terraform apply -auto-approve
         # You might not need these env variables if you're using the assumed role
