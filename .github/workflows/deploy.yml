@@ -56,9 +56,10 @@ jobs:
       - name: Terraform Apply
         run: terraform apply  -auto-approve 
         
-      - name: Deploy Medusa Application on ECS Fargate
-        run: |
-          # Assuming you have a task definition for ECS Fargate
-          aws ecs update-service --cluster my-ecs-cluster --service my-service --force-new-deployment
-        env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
+      - name: Deploy to ECS
+        uses: aws-actions/ecs-deploy@v1
+        with:
+          cluster: my-ecs-cluster
+          service: my-service
+          task-definition: medusa-task
+          region: us-east-1
