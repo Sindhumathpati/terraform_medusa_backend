@@ -57,9 +57,20 @@ jobs:
         run: terraform apply  -auto-approve 
         
       - name: Deploy to ECS
-        uses: aws-actions/ecs-deploy@v1
-        with:
-          cluster: my-ecs-cluster
-          service: my-service
-          task-definition: medusa-task
-          region: us-east-1
+        env:
+          AWS_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          CLUSTER_NAME: my-ecs-cluster
+          SERVICE_NAME: my-service
+          TASK_DEFINITION: medusa-task
+
+        run: |
+          # Register a new revision of the task definition
+          NEW_TASK_DEFINITION=$(aws ecs register-task-definition \
+            --family $TASK_DEFINITION \
+            --container-definitions "[{\"name\":\"medusa\",\"image\":\"895992122733.dkr.ecr.us-east-1.amazonaws.com/medusa-app:latest\",\"memory\":\"512\",\"cpu\":\"256\",\"essential\":true}]" \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          # Update the ECS service to use the new task definition
+          aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --task-definition $NEW_TASK_DEFINITION
