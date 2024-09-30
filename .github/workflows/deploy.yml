@@ -54,8 +54,11 @@ jobs:
         run: terraform init
         
       - name: Terraform Apply
-        run: terraform apply -auto-approve
-        # You might not need these env variables if you're using the assumed role
-        # env:
-        #   TF_VAR_aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        #   TF_VAR_aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: terraform apply  # Removed -auto-approve for manual approval
+
+      - name: Deploy Medusa Application on ECS Fargate
+        run: |
+          # Assuming you have a task definition for ECS Fargate
+          aws ecs update-service --cluster your-cluster-name --service your-service-name --force-new-deployment
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
