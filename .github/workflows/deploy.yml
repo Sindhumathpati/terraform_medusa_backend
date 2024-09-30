@@ -63,7 +63,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           CLUSTER_NAME: my-ecs-cluster
           SERVICE_NAME: my-service
-          TASK_DEFINITION: medusa-task
+          TASK_DEFINITION: medusa-app-task
 
         run: |
           # Register a new revision of the task definition
