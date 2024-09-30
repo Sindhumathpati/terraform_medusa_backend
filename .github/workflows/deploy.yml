@@ -66,11 +66,8 @@ jobs:
           TASK_DEFINITION: medusa-app-task
 
         run: |
-          # Register a new revision of the task definition
-          NEW_TASK_DEFINITION=$(aws ecs register-task-definition \
-            --family $TASK_DEFINITION \
-            --container-definitions "[{\"name\":\"medusa\",\"image\":\"895992122733.dkr.ecr.us-east-1.amazonaws.com/medusa-app:latest\",\"memory\":\"512\",\"cpu\":\"256\",\"essential\":true}]" \
-            --query 'taskDefinition.taskDefinitionArn' --output text)
+          # Use the existing task definition
+          EXISTING_TASK_DEFINITION="medusa-app-task"  # Replace with your actual task definition name or ARN
 
           # Update the ECS service to use the new task definition
           aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --task-definition $NEW_TASK_DEFINITION
