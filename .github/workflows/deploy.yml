@@ -54,8 +54,8 @@ jobs:
         run: terraform init
         
       - name: Terraform Apply
-        run: terraform apply  # Removed -auto-approve for manual approval
-
+        run: terraform apply  -auto-approve 
+        
       - name: Deploy Medusa Application on ECS Fargate
         run: |
           # Assuming you have a task definition for ECS Fargate
