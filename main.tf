@@ -94,3 +94,7 @@ resource "aws_instance" "medusa" {
     Name = "myserver"
   }
 }  
+
+resource "aws_ecs_cluster" "my_cluster" {
+    name = "my-ecs-cluster"  # Ensure this matches what you reference
+}
