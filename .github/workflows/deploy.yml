@@ -59,6 +59,6 @@ jobs:
       - name: Deploy Medusa Application on ECS Fargate
         run: |
           # Assuming you have a task definition for ECS Fargate
-          aws ecs update-service --cluster your-cluster-name --service your-service-name --force-new-deployment
+          aws ecs update-service --cluster my-ecs-cluster --service my-service --force-new-deployment
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
