@@ -64,10 +64,3 @@ jobs:
           CLUSTER_NAME: my-ecs-cluster
           SERVICE_NAME: my-service
           TASK_DEFINITION: medusa-app-task
-
-        run: |
-          # Use the existing task definition
-          EXISTING_TASK_DEFINITION="medusa-app-task"  # Replace with your actual task definition name or ARN
-
-          # Update the ECS service to use the new task definition
-          aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --task-definition $EXISTING_TASK_DEFINITION
