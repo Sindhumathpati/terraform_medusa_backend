@@ -1,144 +1,100 @@
 provider "aws" {
-  region = "us-east-1"  
+  region = "us-east-1" # Change as needed
 }
 
-resource "aws_s3_bucket" "terraform_state" {
-  bucket = "myproject-terraform-state-20240905-uniqueid"  # Use the existing bucket name
-}
-
-resource "aws_s3_bucket_versioning" "terraform_state_versioning" {
-  bucket = aws_s3_bucket.terraform_state.id
-
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-# VPC Configuration
-resource "aws_vpc" "medusa_vpc" {
+# Create a VPC
+resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
+
   tags = {
-    Name = "medusa-vpc"
+    Name = "my-vpc"
   }
 }
 
-resource "aws_subnet" "public_subnet" {
-  vpc_id            = aws_vpc.medusa_vpc.id
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "us-east-1a"  # Modify as needed
-  map_public_ip_on_launch = true
+# Create a public subnet
+resource "aws_subnet" "main" {
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.0.1.0/24"
+  map_public_ip_on_launch = true # Enable auto-assign public IP
+
   tags = {
-    Name = "public-subnet"
+    Name = "my-subnet"
   }
 }
 
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.medusa_vpc.id
+# Create an Internet Gateway
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+
   tags = {
-    Name = "medusa-igw"
+    Name = "my-internet-gateway"
   }
 }
 
-resource "aws_route_table" "public_rt" {
-  vpc_id = aws_vpc.medusa_vpc.id
+# Create a route table for the public subnet
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+
   tags = {
-    Name = "public-route-table"
+    Name = "my-public-route-table"
   }
 }
 
-resource "aws_route" "default_route" {
-  route_table_id         = aws_route_table.public_rt.id
-  destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.igw.id
+# Associate the route table with the public subnet
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.main.id
+  route_table_id = aws_route_table.public.id
 }
 
-resource "aws_route_table_association" "public_rt_assoc" {
-  subnet_id      = aws_subnet.public_subnet.id
-  route_table_id = aws_route_table.public_rt.id
-}
-
-resource "aws_ecs_cluster" "medusa_cluster" {
-  name = "medusa-cluster"
-}
-
-resource "aws_ecs_task_definition" "medusa_task" {
-  family                   = "medusa-task"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = "512"
-  memory                   = "1024"
-  execution_role_arn       = aws_iam_role.ecsTaskExecutionRole.arn
-
-  container_definitions = jsonencode([{
-    name  = "medusa"
-    image = "medusajs/medusa"
-    essential = true
-    portMappings = [{
-      containerPort = 9000
-      hostPort      = 9000
-    }]
-    environment = [
-      {
-        name  = "DATABASE_URL"
-        value = "your-database-url"
-      },
-      {
-        name  = "REDIS_URL"
-        value = "your-redis-url"
-      }
-    ]
-  }])
-}
-
-resource "aws_ecs_service" "medusa_service" {
-  name            = "medusa-service"
-  cluster         = aws_ecs_cluster.medusa_cluster.id
-  task_definition = aws_ecs_task_definition.medusa_task.arn
-  desired_count   = 1
-
-  network_configuration {
-    subnets         = [aws_subnet.public_subnet.id]
-    security_groups = [aws_security_group.ecs_sg.id]
-  }
-}
-
-
-resource "aws_security_group" "ecs_sg" {
-  vpc_id = aws_vpc.medusa_vpc.id
+# Create a security group for the EC2 instance
+resource "aws_security_group" "instance_sg" {
+  vpc_id = aws_vpc.main.id
 
   ingress {
-    from_port   = 9000
-    to_port     = 9000
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["0.0.0.0/0"] # Allow HTTP traffic
+  }
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # Allow SSH traffic
   }
 
   egress {
     from_port   = 0
     to_port     = 0
-    protocol    = "-1"
+    protocol    = "-1" # Allow all outbound traffic
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "my-instance-sg"
   }
 }
 
-resource "aws_iam_role" "ecsTaskExecutionRole" {
-  name = "ecsTaskExecutionRole"
+# Create an EC2 instance
+resource "aws_instance" "medusa" {
+  ami           = "ami-0e86e20dae9224db8" # Update with a suitable AMI
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.main.id
+  security_groups = [aws_security_group.instance_sg.id]
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-      },
-    ]
-  })
-}
+  key_name      = "awsmedusa"
 
-resource "aws_iam_role_policy_attachment" "ecsTaskExecutionPolicy" {
-  role       = aws_iam_role.ecsTaskExecutionRole.id
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  tags = {
+    Name = "myserver"
+  }
+}  
+
+resource "aws_ecs_cluster" "my_cluster" {
+    name = "my-ecs-cluster"  # Ensure this matches what you reference
 }

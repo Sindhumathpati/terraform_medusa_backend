@@ -1,0 +1,71 @@
+name: Deploy Medusa to ECS Fargate Spot
+
+on:
+  push:
+    branches:
+      - main  # This triggers deployment on push to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Docker image
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/medusa-app:latest .
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push Docker image to Docker Hub
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/medusa-app:latest
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+      - name: Register new ECS task definition
+        id: task-def
+        run: |
+          # Fetch current task definition
+          task_definition=$(aws ecs describe-task-definition --task-definition ${{ secrets.TASK_DEFINITION_NAME }})
+
+          # Use jq to update the task definition with the new image
+          new_task_definition=$(echo "$task_definition" | jq --arg IMAGE "${{ secrets.DOCKER_USERNAME }}/medusa-app:latest" '.taskDefinition.containerDefinitions[0].image = $IMAGE')
+
+          # Register the new task definition
+          aws ecs register-task-definition \
+            --family ${{ secrets.TASK_DEFINITION_NAME }} \
+            --cli-input-json "$new_task_definition"
+
+      - name: Update ECS service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ secrets.CLUSTER_NAME }} \
+            --service ${{ secrets.SERVICE_NAME }} \
+            --force-new-deployment
+
+      - name: Wait for service deployment to complete
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ secrets.CLUSTER_NAME }} \
+            --services ${{ secrets.SERVICE_NAME }}
+
+      - name: Notify deployment completion
+        run: echo "Medusa app deployed to ECS Fargate Spot successfully"
